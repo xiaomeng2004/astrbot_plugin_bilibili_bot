@@ -1,0 +1,20 @@
+{
+    "is_auto_parse": {
+        "description": "是否自动解析B站链接",
+        "type": "bool",
+        "hint": "",
+        "default": true
+    },
+    "is_auto_pack": {
+        "description": "是否将解析结果打包为消息集合",
+        "type": "bool",
+        "hint": "需要在任何wechat平台使用请禁用此项",
+        "default": true
+    },
+    "max_video_size_mb": {
+        "description": "最大允许发送的视频大小(MB)",
+        "type": "float",
+        "hint": "超过此大小的视频将被跳过，设置为0表示不限制",
+        "default": 0.0
+    }
+}
