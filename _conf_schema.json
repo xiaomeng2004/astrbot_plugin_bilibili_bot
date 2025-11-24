@@ -19,7 +19,7 @@
     },
     "desc_template": {
         "description": "标题/作者/简介 文本模板",
-        "type": "string",
+        "type": "text",
         "hint": "可用变量: {title} {author} {desc}",
         "default": "标题：{title}\n作者：{author}\n简介：{desc}"
     },

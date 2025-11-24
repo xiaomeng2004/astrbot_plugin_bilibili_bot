@@ -1,4 +1,4 @@
-name: astrbot_plugin_bilibili_bot
+name: astrbot_plugin_bilibili_bot_mod
 desc: 适配 AstrBot 的插件，自动识别B站链接并转换为直链发送
 help: None
 version: v1.0.1

@@ -5,7 +5,7 @@ from astrbot.core.star.filter.event_message_type import EventMessageType
 from .parser import BilibiliParser
 import re
 
-@register("astrbot_plugin_bilibili_bot", "小鱼酱", "自动识别B站链接并转换为直链发送", "1.0.1")
+@register("astrbot_plugin_bilibili_bot_mod", "小鱼酱", "自动识别B站链接并转换为直链发送", "1.0.1")
 class BilibiliBotPlugin(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
