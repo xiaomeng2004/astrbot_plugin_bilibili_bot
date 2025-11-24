@@ -16,9 +16,10 @@ EP_PATH_RE = re.compile(r"/bangumi/play/ep(\d+)")
 EP_QS_RE = re.compile(r"(?:^|[?&])ep_id=(\d+)")
 
 class BilibiliParser:
-    def __init__(self, max_video_size_mb: float = 0.0):
+    def __init__(self, max_video_size_mb: float = 0.0, desc_template: str = "标题：{title}\n作者：{author}\n简介：{desc}"):
         self.max_video_size_mb = max_video_size_mb
         self.semaphore = asyncio.Semaphore(10)
+        self.desc_template = desc_template
 
     async def expand_b23(self, url: str, session: aiohttp.ClientSession) -> str:
         if urlparse(url).netloc.lower() == B23_HOST:
@@ -271,9 +272,11 @@ class BilibiliParser:
                 for result in results:
                     if result and not isinstance(result, Exception):
                         # 构建文本节点（标题、作者、简介）
-                        desc_text = f"标题：{result['title']}\n作者：{result['author']}"
-                        if result.get('desc'):
-                            desc_text += f"\n简介：{result['desc']}"
+                        desc_text = self.desc_template.format(
+                            title=result.get('title', ''),
+                            author=result.get('author', ''),
+                            desc=result.get('desc', '') or ''
+                        )
                         
                         if is_auto_pack:
                             text_node = Node(

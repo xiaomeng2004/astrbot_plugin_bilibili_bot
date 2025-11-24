@@ -11,6 +11,18 @@
         "hint": "需要在任何wechat平台使用请禁用此项",
         "default": true
     },
+    "service_message": {
+        "description": "解析成功后发送的提示文字",
+        "type": "string",
+        "hint": "留空则不发送提示文字",
+        "default": "B站bot为您服务 ٩( 'ω' )و"
+    },
+    "desc_template": {
+        "description": "标题/作者/简介 文本模板",
+        "type": "string",
+        "hint": "可用变量: {title} {author} {desc}",
+        "default": "标题：{title}\n作者：{author}\n简介：{desc}"
+    },
     "max_video_size_mb": {
         "description": "最大允许发送的视频大小(MB)",
         "type": "float",
