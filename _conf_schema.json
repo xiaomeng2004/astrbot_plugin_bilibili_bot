@@ -13,7 +13,7 @@
     },
     "service_message": {
         "description": "解析成功后发送的提示文字",
-        "type": "string",
+        "type": "text",
         "hint": "留空则不发送提示文字",
         "default": "B站bot为您服务 ٩( 'ω' )و"
     },
@@ -28,5 +28,11 @@
         "type": "float",
         "hint": "超过此大小的视频将被跳过，设置为0表示不限制",
         "default": 0.0
+    },
+    "oversize_message": {
+        "description": "视频大小超出限制时的提示",
+        "type": "text",
+        "hint": "可用变量: {current_size} {max_size}，留空则不发送",
+        "default": "当前视频大小为 {current_size} MB，超过限制的 {max_size} MB，已为您跳过发送。"
     }
 }

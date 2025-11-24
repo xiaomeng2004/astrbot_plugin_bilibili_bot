@@ -16,10 +16,11 @@ EP_PATH_RE = re.compile(r"/bangumi/play/ep(\d+)")
 EP_QS_RE = re.compile(r"(?:^|[?&])ep_id=(\d+)")
 
 class BilibiliParser:
-    def __init__(self, max_video_size_mb: float = 0.0, desc_template: str = "标题：{title}\n作者：{author}\n简介：{desc}"):
+    def __init__(self, max_video_size_mb: float = 0.0, desc_template: str = "标题：{title}\n作者：{author}\n简介：{desc}", oversize_message: str = "当前视频大小为 {current_size} MB，超过限制的 {max_size} MB，已为您跳过发送。"):
         self.max_video_size_mb = max_video_size_mb
         self.semaphore = asyncio.Semaphore(10)
         self.desc_template = desc_template
+        self.oversize_message = oversize_message
 
     async def expand_b23(self, url: str, session: aiohttp.ClientSession) -> str:
         if urlparse(url).netloc.lower() == B23_HOST:
@@ -155,8 +156,8 @@ class BilibiliParser:
             pass
         return None
 
-    async def parse_bilibili_minimal(self, url: str, p: Optional[int] = None, session: aiohttp.ClientSession = None) -> Optional[Dict[str, str]]:
-        """解析B站链接，返回视频信息"""
+    async def parse_bilibili_minimal(self, url: str, p: Optional[int] = None, session: aiohttp.ClientSession = None) -> Optional[Dict[str, Any]]:
+        """解析B站链接，返回视频信息以及是否超限"""
         if session is None:
             timeout = aiohttp.ClientTimeout(total=10)
             async with aiohttp.ClientSession(headers={"User-Agent": UA}, timeout=timeout) as sess:
@@ -203,18 +204,22 @@ class BilibiliParser:
         if not direct_url:
             return None
 
+        oversize = False
+        video_size = None
         # 检查视频大小
         if self.max_video_size_mb > 0:
             video_size = await self.get_video_size(direct_url, session)
             if video_size and video_size > self.max_video_size_mb:
-                return None  # 视频过大，跳过
+                oversize = True
 
         return {
             "video_url": page_url,
             "author": info["author"],
             "title": info["title"],
             "desc": info["desc"],
-            "direct_url": direct_url
+            "direct_url": direct_url,
+            "video_size": video_size,
+            "oversize": oversize,
         }
 
     @staticmethod
@@ -237,7 +242,7 @@ class BilibiliParser:
                 result_links.append(f"https://www.bilibili.com/video/{bv}")
         return result_links
 
-    async def parse(self, session: aiohttp.ClientSession, url: str) -> Optional[Dict[str, str]]:
+    async def parse(self, session: aiohttp.ClientSession, url: str) -> Optional[Dict[str, Any]]:
         """解析单个B站链接"""
         async with self.semaphore:
             try:
@@ -265,19 +270,33 @@ class BilibiliParser:
                     sender_id = 10000
             
             timeout = aiohttp.ClientTimeout(total=30)
+            oversize_tips: List[str] = []
+
             async with aiohttp.ClientSession(headers={"User-Agent": UA}, timeout=timeout) as session:
                 tasks = [self.parse(session, url) for url in urls]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
-                
+
                 for result in results:
                     if result and not isinstance(result, Exception):
+                        # 处理超限提示
+                        if result.get("oversize"):
+                            if self.oversize_message:
+                                current_size = result.get("video_size") or 0.0
+                                tip = self.oversize_message.format(
+                                    current_size=f"{current_size:.2f}",
+                                    max_size=f"{self.max_video_size_mb:.2f}",
+                                )
+                                oversize_tips.append(tip)
+                            # 超限则不添加视频/文本节点
+                            continue
+
                         # 构建文本节点（标题、作者、简介）
                         desc_text = self.desc_template.format(
                             title=result.get('title', ''),
                             author=result.get('author', ''),
                             desc=result.get('desc', '') or ''
                         )
-                        
+
                         if is_auto_pack:
                             text_node = Node(
                                 name=sender_name,
@@ -289,7 +308,7 @@ class BilibiliParser:
                         else:
                             text_node = Plain(desc_text)
                         nodes.append(text_node)
-                        
+
                         # 构建视频节点
                         if is_auto_pack:
                             video_node = Node(
@@ -302,10 +321,14 @@ class BilibiliParser:
                         else:
                             video_node = Video.fromURL(result['direct_url'])
                         nodes.append(video_node)
-            
-            if not nodes:
+
+            if not nodes and not oversize_tips:
                 return None
-            return nodes
+
+            return {
+                "nodes": nodes,
+                "oversize_tips": oversize_tips,
+            }
         except Exception as e:
             print(f"构建节点时发生错误：{e}", flush=True)
             import traceback
